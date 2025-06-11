@@ -5,7 +5,7 @@ library(tidytext)
 
 # Laad data (tokenized dataset van de mor meldingen)
 # mor_data <- readRDS(...)
-fixi_data <- readRDS("clean_data/fixi_clean.rds")
+fixi_data <- readRDS("clean_data/fixi_tekst_clean.rds")
 fixi_metadata <- readRDS("clean_data/fixi_metadata_clean.rds")
 
 # Tf-idf score berekenen van de meest voorkomende woorden
@@ -34,10 +34,16 @@ set.seed(42)
 data_split <- initial_split(doc_vectors, prop = 0.8, strata = categoryName)
 
 train_data <- training(data_split)
+train_data <- train_data[, -1]  # Verwijder de doc_id kolom
+x_train <- train_data[, -which(names(train_data) == "categoryName")]
 test_data <- testing(data_split)
 
 # Train een logistische regressie model
-logreg <- glm(categoryName ~ ., data = train_data, family = "binomial")
+logreg <- glmnet::cv.glmnet(x = x_train, y = train_data$categoryName, family = "multinomial", type.multinomial = "ungrouped")
+
 
 # Maak voorspellingen met het model
 logreg_pred <- predict(logreg, newdata = test_data)
+
+# Vergelijk voorspelling met gegeven categorie
+logreg_pred 
