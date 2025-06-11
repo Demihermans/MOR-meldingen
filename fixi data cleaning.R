@@ -1,14 +1,50 @@
-# Laad bronbestand in
-path <- "C:/Users/jurvd/OneDrive/Bureaublad/fixi_meldingen_20250521.csv"
-cols <- c("teamName", "subCatName", "source", "regionName", "address", "addressDetails",
-         "categoryName", "created", "closed", "description", "latitude", "longitude", "status")
-description_col <- "description"
+# Packages
+library(tidyverse)
+library(DBI)
+library(odbc)
+
+# Laad brondata in thuis/werk
+pc <- "werk"
+
+if (pc == "thuis") {
+  # .csv bestand
+  path <- "C:/Users/jurvd/OneDrive/Bureaublad/fixi_meldingen_20250611.csv"  
+  cols <- c("id", "categoryName", "teamName", "isAnonymous", "source", "created",
+            "regionName", "address", "latitude", "longitude", "description")
+  data <- read.csv(path, sep = ";", header = FALSE, stringsAsFactors = FALSE,
+                   col.names = cols)
+} else if (pc == "werk") {
+  sql_con <- dbConnect(odbc(),
+                       driver = "ODBC Driver 17 for SQL Server",
+                       server = "sql-dataplatform.database.windows.net",
+                       database = "sqldb-dataplatform",
+                       authentication = "ActiveDirectoryInteractive")  
+  
+  data <- dbGetQuery(sql_con, 
+    "SELECT 
+    	[id]
+    	,[categoryName]
+    	,[teamName]
+    	,[isAnonymous]
+    	,[source]
+    	,[created]
+    	,[regionName]
+    	,[address]
+    	,[latitude]
+    	,[longitude]
+    	,[description]
+    
+    FROM [FXI_E].[Issues]
+    
+    WHERE 1 = 1
+    	AND DATEDIFF(dd, created, GETDATE()) <= 365")
+  
+  dbDisconnect(sql_con)
+}
+
+# Alvast pad definiëren
 metadata_output_path <- "clean_data/fixi_metadata_clean.RDS"
 tekst_output_path <- "clean_data/fixi_tekst_clean.RDS"
-
-data <- read.csv(path, sep = ";", header = FALSE, stringsAsFactors = FALSE,
-                col.names = cols
-                      )
 
 # Bekijk welke categorieën er zijn
 data |> 
@@ -30,17 +66,16 @@ categorieen <- categorieen[categorieen != "Archief oude categorieen"]
 data <- data |> 
   filter(categoryName %in% categorieen)
 
-# Houd alles behalve de tekstuele data apart en wijs rijnummer toe (voor koppeling op doc_id)
+# Houd alles behalve de tekstuele data apart 
 metadata <- data |> 
-  select(-description) |> 
-  mutate(doc_id = row_number())
+  select(-description)
 
 # Roep de udpipe backend aan
 cleanNLP::cnlp_init_udpipe("dutch", parser = "none")
 
 # Tokenise de data
 tekst_verwerkt <- data |> 
-  cleanNLP::cnlp_annotate(text_name = description_col)
+  cleanNLP::cnlp_annotate(text_name = "description", doc_name = "id")
 
 View(tekst_verwerkt$token)
 
