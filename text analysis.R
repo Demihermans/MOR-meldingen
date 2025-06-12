@@ -6,13 +6,16 @@ library(RColorBrewer)
 library(lexicon)
 library(dplyr)
 library(tidyr)
-library(tidytext)
 
 ##tokens samenvatten per document (melding)
 #bag of words/ tf-idf / n-grams
 
+# Laad de data
+data <- readRDS("clean_data/fixi_tekst_clean.rds")
+#data <- df_clean_MOR_gefilterd_stopwoorden
+
 #  Zet je tokens om naar een “tidy” dataset per document
-tidy_tokens <- df_clean_MOR_gefilterd_stopwoorden %>%
+tidy_tokens <- data %>%
   select(doc_id, lemma) %>%
   rename(word = lemma)
 
