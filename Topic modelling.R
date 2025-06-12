@@ -1,6 +1,6 @@
 # Topic modelling (zonder naar labels/ categorie te kijken)
 
-
+library(ggplot2)
 library(tm)
 library(topicmodels)
 library(broom)
