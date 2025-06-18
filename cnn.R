@@ -109,18 +109,15 @@ predictions <- model |> predict(x_test)
 # Zet voorspellingen om naar categorieën
 voorspelde_cat <- apply(predictions, 1, which.max) - 1
 
-categories_list[voorspelde_cat + 1]
-categories_list[y_test |> apply(1, which.max)]
-
 # Vergelijk voorspelde categorieën met de werkelijke categorieën
-# conf_matrix <- table(
-#   Predicted = as.factor(voorspelde_cat),
-#   Actual = as.factor(apply(y_test, 1, which.max) - 1)
-# )
 conf_matrix <- table(
-  Predicted = categories_list[voorspelde_cat + 1],
-  Actual = categories_list[y_test |> apply(1, which.max)]
+  Predicted = as.factor(voorspelde_cat),
+  Actual = as.factor(apply(y_test, 1, which.max) - 1)
 )
+# conf_matrix <- table(
+#   Predicted = categories_list[voorspelde_cat + 1],
+#   Actual = categories_list[y_test |> apply(1, which.max)]
+# )
 
 # Print de confusion matrix
 print(conf_matrix)
