@@ -8,14 +8,14 @@ raw_data_output_path <- "raw_data/fixi_data.RDS"
 raw_data_tokenized_output_path <- "raw_data/fixi_data_tokenized.RDS"
 metadata_output_path <- "clean_data/fixi_metadata_clean.RDS"
 tekst_output_path <- "clean_data/fixi_tekst_clean.RDS"
+clean_data_output_path <- "clean_data/fixi_clean.RDS"
 
 # Laad brondata in nieuw/bestaand 
 # .csv bestand
-#path <- "C:/Users/jurvd/OneDrive/Bureaublad/fixi_meldingen_20250611.csv"  
-#cols <- c("id", "categoryName", "teamName", "isAnonymous", "source", "created",
-#          "regionName", "address", "latitude", "longitude", "description")
-#data <- read.csv(path, sep = ";", header = FALSE, stringsAsFactors = FALSE,
-#                 col.names = cols)
+path <- "c:/Users/jurriloo/OneDrive - Gemeente Katwijk/Bureaublad/fixi_2025_06_30.csv"
+#cols <- c("id", "categoryName", "teamName", "source", "created",
+#         "regionName", "description")
+data <- read.csv(path, sep = ";", header = TRUE, stringsAsFactors = FALSE)
 
 versie <- "bestaand"
 
@@ -30,22 +30,18 @@ if (versie == "bestaand") {
   
   data <- dbGetQuery(sql_con, 
     "SELECT 
-    	[id]
-    	,[categoryName]
-    	,[teamName]
-    	,[isAnonymous]
-    	,[source]
-    	,[created]
-    	,[regionName]
-    	,[address]
-    	,[latitude]
-    	,[longitude]
-    	,[description]
-    
+        [id]
+        ,[categoryName]
+        ,[teamName]
+        ,[source]
+        ,[created]
+        ,[regionName]
+        ,[description]
+        
     FROM [FXI_E].[Issues]
-    
+        
     WHERE 1 = 1
-    	AND DATEDIFF(dd, created, GETDATE()) <= 365")
+    	AND created < '2025-07-01'")
   
   dbDisconnect(sql_con)
   
@@ -57,8 +53,9 @@ if (versie == "bestaand") {
 data |> 
   count(categoryName, sort = TRUE)
 
-# Verwijder whitespace op het eind in de categorienamen
+# Verwijder whitespace op het eind in de categorienamen en omschrijving
 data$categoryName <- str_trim(data$categoryName)
+data$description <- str_trim(data$description)
 
 # Verwijder categorieën die minder dan 2% van alle meldingen bevatten
 min_aantal <- nrow(data) * 0.02
@@ -72,6 +69,10 @@ categorieen <- categorieen[categorieen != "Archief oude categorieen"]
 
 data <- data |> 
   filter(categoryName %in% categorieen)
+
+# Haal rijen eruit zonder tekst in de description kolom
+data <- data |> 
+  filter(description != "")
 
 # Houd alles behalve de tekstuele data apart 
 metadata <- data |> 
@@ -113,7 +114,7 @@ print(tekst_verwerkt |>
 
 # Update de stopwoordenlijst
 stop_NL <- stop_NL |> 
-  rbind("staan", "graag", "liggen", "gaan", "komen", "zitten", "zien", "groot", "lopen", "gemeente", "plaatsen", "kijken",
+  rbind("staan", "graag", "liggen", "gaan", "komen", "zitten", "zien", "week", "melding", "groot", "lopen", "gemeente", "plaatsen", "kijken",
           "geven", "laten", "gebeuren", "blijven", "waardoor", "meerdere")
 
 tekst_verwerkt <- tekst_verwerkt |> 
@@ -121,3 +122,4 @@ tekst_verwerkt <- tekst_verwerkt |>
 
 saveRDS(metadata, metadata_output_path)
 saveRDS(tekst_verwerkt, tekst_output_path)
+saveRDS(data, clean_data_output_path)
