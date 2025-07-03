@@ -54,7 +54,7 @@ set.seed(42)
 
 # Voor eerste poging maar 10% van de data gebruiken
 doc_vectors <- doc_vectors |> 
-  sample_frac(0.3)
+  sample_frac(0.1)
 
 data_split <- initial_split(doc_vectors, prop = 0.8, strata = categoryName)
 
@@ -82,8 +82,8 @@ baked_test <- recipe_spec |>
 # SVM model initialiseren
 svm_spec <- svm_rbf(
   mode = "classification",
-  cost = tune(),
-  rbf_sigma = tune()
+  cost = 10, # tune(),
+  rbf_sigma = 0.01, # tune()
 ) |> 
   set_engine("kernlab")
 
