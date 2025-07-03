@@ -1,3 +1,4 @@
+library(reticulate)
 library(keras)
 library(tensorflow)
 library(tidyverse)
@@ -21,12 +22,44 @@ embeddings_dim <- 300
 categories <- length(unique(metadata$categoryName))
 
 # Bereid data voor om in "simpel" model te stoppen
-set.seed(42)
+# set.seed(42)
+# 
+# # Alle dimensies
+# x_data <- doc_vectors |>
+#   select(-categoryName) |>
+#   as.matrix()
+# 
+# # Het label, omgezet naar categorische numeriek variabelen (one-hot encoded)
+# y_data <- to_categorical(as.integer(as.factor(doc_vectors$categoryName)) - 1)
+# 
+# # Lijstje om de categorieën te kunnen gebruiken
+# categories_list <- levels(as.factor(doc_vectors$categoryName))
 
-# Alle dimensies
+# indices <- sample(1:nrow(x_data), size = 0.8 * nrow(x_data))
+
+# x_train <- x_data[indices, ]
+# y_train <- y_data[indices, ]
+# 
+# x_test <- x_data[-indices, ]
+# y_test <- y_data[-indices, ]
+# 
+# 
+# # Definieer "simpel" deep learning model
+# model <- keras_model_sequential() |>
+#   # Input shape gelijk aan aantal dimensie kolommen
+#   layer_dense(units = 128, activation = 'relu', input_shape = embeddings_dim) |>
+#   # Dropout om overfitting te voorkomen
+#   layer_dropout(rate = 0.3) |>
+#   layer_dense(units = 64, activation = 'relu') |>
+#   layer_dropout(rate = 0.3) |>
+#   # Laatste laag met aantal units gelijk aan te voorspellen categorieën en softmax voor classificatie
+#   layer_dense(units = categories, activation = 'softmax')
+
+# # Bereid data voor om in convolutional model te stoppen
 x_data <- doc_vectors |>
   select(-categoryName) |>
-  as.matrix()
+  as.matrix() |>
+  array_reshape(dim = c(nrow(doc_vectors), embeddings_dim, 1))
 
 # Het label, omgezet naar categorische numeriek variabelen (one-hot encoded)
 y_data <- to_categorical(as.integer(as.factor(doc_vectors$categoryName)) - 1)
@@ -36,54 +69,22 @@ categories_list <- levels(as.factor(doc_vectors$categoryName))
 
 indices <- sample(1:nrow(x_data), size = 0.8 * nrow(x_data))
 
-x_train <- x_data[indices, ]
+x_train <- x_data[indices, ,]
 y_train <- y_data[indices, ]
 
-x_test <- x_data[-indices, ]
+x_test <- x_data[-indices, ,]
 y_test <- y_data[-indices, ]
 
-
-# Definieer "simpel" deep learning model
+# Zwaarder model
 model <- keras_model_sequential() |>
-  # Input shape gelijk aan aantal dimensie kolommen
-  layer_dense(units = 128, activation = 'relu', input_shape = embeddings_dim) |>
-  # Dropout om overfitting te voorkomen
+  layer_conv_1d(filters = 128, kernel_size = 5, activation = 'relu', input_shape = c(300,1)) |>
+  layer_max_pooling_1d(pool_size = 5) |>
+  layer_conv_1d(filters = 64, kernel_size = 5, activation = 'relu') |>
+  layer_max_pooling_1d(pool_size = 5) |>
+  layer_flatten()  |>
+  layer_dense(units = 128, activation = 'relu') |>
   layer_dropout(rate = 0.3) |>
-  layer_dense(units = 64, activation = 'relu') |>
-  layer_dropout(rate = 0.3) |>
-  # Laatste laag met aantal units gelijk aan te voorspellen categorieën en softmax voor classificatie
   layer_dense(units = categories, activation = 'softmax')
-
-# # Bereid data voor om in convolutional model te stoppen
-# x_data <- doc_vectors |> 
-#   select(-categoryName) |> 
-#   as.matrix() |> 
-#   array_reshape(dim = c(nrow(doc_vectors), embeddings_dim, 1))
-# 
-# # Het label, omgezet naar categorische numeriek variabelen (one-hot encoded)
-# y_data <- to_categorical(as.integer(as.factor(doc_vectors$categoryName)) - 1)
-# 
-# # Lijstje om de categorieën te kunnen gebruiken
-# categories_list <- levels(as.factor(doc_vectors$categoryName))
-# 
-# indices <- sample(1:nrow(x_data), size = 0.8 * nrow(x_data))
-# 
-# x_train <- x_data[indices, ,]
-# y_train <- y_data[indices, ]
-# 
-# x_test <- x_data[-indices, ,]
-# y_test <- y_data[-indices, ]
-# 
-# # Zwaarder model
-# model <- keras_model_sequential() |> 
-#   layer_conv_1d(filters = 128, kernel_size = 5, activation = 'relu', input_shape = c(300,1)) |> 
-#   layer_max_pooling_1d(pool_size = 5) |> 
-#   layer_conv_1d(filters = 64, kernel_size = 5, activation = 'relu') |> 
-#   layer_max_pooling_1d(pool_size = 5) |> 
-#   layer_flatten()  |> 
-#   layer_dense(units = 128, activation = 'relu') |> 
-#   layer_dropout(rate = 0.3) |> 
-#   layer_dense(units = categories, activation = 'softmax')
 
 # Compileer het model met een optimizer, verliesfunctie en welke metrics
 model |>  compile(

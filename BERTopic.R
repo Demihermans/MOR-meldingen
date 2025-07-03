@@ -46,4 +46,4 @@ topics <- topic_model$fit_transform(df$description)
 # Laat de topics zien
 topic_info <- topic_model$get_topic_info()
 
-topic_info$Representative_Docs[1]
+topic_info$Representative_Docs[4]
